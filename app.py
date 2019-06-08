@@ -1,42 +1,29 @@
-from flask import Flask, request, abort
+const line = require('@line/bot-sdk');
 
-from linebot import (
-    LineBotApi, WebhookHandler
-)
-from linebot.exceptions import (
-    InvalidSignatureError
-)
-from linebot.models import *
+const config = {
+  channelAccessToken: '+NVJIn8NLXRz0W+iCUmtcxNg/YhjgvGqq++PiGyxu0pb/O3ZdFPxc9vnDSnO3pasVqpon83WAck8NCDO4Udo2H/cSRhn7MgDP/Dge/GjEgXnBjfz0Tb819nJ4fw+b68avXJ3Zv0CMccduBY5o/MFrQdB04t89/1O/w1cDnyilFU=',
+  channelSecret: '5af2e4c822dda3bd3af061c7e06480e3'
+};
 
-app = Flask(__name__)
+const app = express();
+app.post('/', line.middleware(config), (req, res) => {
+  Promise
+    .all(req.body.events.map(handleEvent))
+    .then((result) => res.json(result));
+});
 
-# Channel Access Token
-line_bot_api = LineBotApi('+NVJIn8NLXRz0W+iCUmtcxNg/YhjgvGqq++PiGyxu0pb/O3ZdFPxc9vnDSnO3pasVqpon83WAck8NCDO4Udo2H/cSRhn7MgDP/Dge/GjEgXnBjfz0Tb819nJ4fw+b68avXJ3Zv0CMccduBY5o/MFrQdB04t89/1O/w1cDnyilFU=')
-# Channel Secret
-handler = WebhookHandler('5af2e4c822dda3bd3af061c7e06480e3')
+const client = new line.Client(config);
+function handleEvent(event) {
+  if (event.type !== 'message' || event.message.type !== 'text') {
+    return Promise.resolve(null);
+  }
 
-# 監聽所有來自 /callback 的 Post Request
-@app.route("/callback", methods=['POST'])
-def callback():
-    # get X-Line-Signature header value
-    signature = request.headers['X-Line-Signature']
-    # get request body as text
-    body = request.get_data(as_text=True)
-    app.logger.info("Request body: " + body)
-    # handle webhook body
-    try:
-        handler.handle(body, signature)
-    except InvalidSignatureError:
-        abort(400)
-    return 'OK'
+  return client.replyMessage(event.replyToken, {
+    type: 'text',
+    text: event.message.text
+  });
+}
 
-# 處理訊息
-@handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
-    message = TextSendMessage(text=event.message.text)
-    line_bot_api.reply_message(event.reply_token, message)
-
-import os
-if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+app.listen(process.env.PORT || 8080, function() {
+  console.log("App now running on port");
+});
